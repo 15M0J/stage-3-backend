@@ -241,14 +241,18 @@ profileRouter.get("/export", authorizeRole(["ADMIN"]), async (req, res, next) =>
 
     if (rows.length === 0) return res.status(404).send("No data to export");
 
-    const headers = Object.keys(rows[0]).join(",");
-    const csvData = rows.map(row => 
-      Object.values(row).map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")
-    ).join("\n");
+    const columns = [
+      'id', 'name', 'gender', 'gender_probability', 'age', 
+      'age_group', 'country_id', 'country_name', 'country_probability', 'created_at'
+    ];
+
+    const csvRows = rows.map(row => 
+      columns.map(col => `"${String(row[col] || '').replace(/"/g, '""')}"`).join(",")
+    );
 
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename=profiles_${Date.now()}.csv`);
-    res.send(`${headers}\n${csvData}`);
+    res.send(`${columns.join(",")}\n${csvRows.join("\n")}`);
   } catch (error) { next(error); }
 });
 
