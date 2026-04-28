@@ -3,7 +3,7 @@ const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { findOrCreateUser, saveRefreshToken, deleteRefreshToken, findRefreshToken } = require("./db");
-const { JWT_SECRET } = require("./middleware");
+const { JWT_SECRET } = require("./authMiddleware");
 
 const router = express.Router();
 

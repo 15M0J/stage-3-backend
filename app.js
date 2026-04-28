@@ -27,7 +27,7 @@ const {
   normalizeFilter,
   normalizeName
 } = require("./profileUtils");
-const { authenticateToken, authorizeRole } = require("./middleware");
+const { authenticateToken, authorizeRole } = require("./authMiddleware");
 const authRoutes = require("./authRoutes");
 
 const app = express();
