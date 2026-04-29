@@ -409,7 +409,7 @@ async function deleteRefreshToken(token) {
 
 async function findRefreshToken(token) {
   const result = await query(
-    `SELECT rt.*, u.role, u.username, u.is_active
+    `SELECT rt.*, u.role, u.username, u.is_active, u.avatar_url
      FROM refresh_tokens rt
      JOIN users u ON rt.user_id = u.id
      WHERE rt.token = $1 AND rt.expires_at > now()
@@ -436,6 +436,7 @@ module.exports = {
   getProfileById,
   getProfileByName,
   listProfiles,
+  query,
   upsertProfiles,
   findOrCreateUser,
   saveRefreshToken,

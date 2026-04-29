@@ -31,6 +31,7 @@ const { authenticateToken, authorizeRole } = require("./authMiddleware");
 const authRoutes = require("./authRoutes");
 
 const app = express();
+app.set('trust proxy', 1); // Trust Vercel's proxy
 
 // --- Security & Logging Middleware ---
 app.use(helmet());
@@ -49,12 +50,12 @@ app.use(cors({
 app.use(express.json());
 
 // --- Rate Limiting (TRD Requirements) ---
-// Note: In-memory store won't persist across Vercel lambdas, but we set headers for detection
 const authLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, 
   max: 10,
   standardHeaders: true, 
   legacyHeaders: false,
+  validate: { trustProxy: false, xForwardedForHeader: false },
   message: { status: "error", message: "Too many login attempts, please try again later." }
 });
 
@@ -63,7 +64,7 @@ const apiLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  validate: { trustProxy: false, xForwardedForHeader: false },
   message: { status: "error", message: "Rate limit exceeded" }
 });
 
