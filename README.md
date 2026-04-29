@@ -4,53 +4,56 @@ Insighta Labs+ is a secure Profile Intelligence System designed for demographic 
 
 ## 🏗 System Architecture
 
-The system follows a modular monolithic architecture:
-- **Express.js API**: Handles requests, authentication, and business logic.
-- **PostgreSQL Database**: Persistent storage for profiles, users, and refresh tokens.
-- **GitHub OAuth**: Third-party identity provider for secure login.
-- **Interfaces**: CLI Tool (Node.js) and Web Portal (React/Vite).
+The system is built as a modular Node.js API with the following components:
+- **Express.js Framework**: Provides the core routing and middleware engine.
+- **PostgreSQL Database**: Stores user identities, demographic profiles, and secure session tokens.
+- **GitHub OAuth 2.0**: Handles external identity verification.
+- **Interfaces**:
+  - **CLI**: A globally installable command-line tool.
+  - **Web Portal**: A secure React-based dashboard.
 
 ## 🔐 Authentication Flow (GitHub OAuth with PKCE)
 
-We implement the Proof Key for Code Exchange (PKCE) extension to secure the OAuth flow for both the CLI and Web Portal.
-
-1.  **Initiation**: The client generates a `code_verifier` and a `code_challenge`.
-2.  **Authorization**: The user is redirected to GitHub with the `code_challenge`.
-3.  **Callback**: GitHub redirects back with an authorization `code`.
-4.  **Exchange**: The client sends the `code` and `code_verifier` to our `/api/v1/auth/token` endpoint.
-5.  **Validation**: The backend exchanges these with GitHub using the `client_secret` and verifies the PKCE handshake.
-6.  **Issuance**: The backend issues a short-lived **Access Token** (JWT) and a long-lived **Refresh Token**.
+We implement the Proof Key for Code Exchange (PKCE) flow to ensure secure token exchange:
+1.  **Authorization Request**: The client (CLI or Web) redirects the user to `/auth/github` with a `code_challenge` and `state`.
+2.  **User Consent**: The user authenticates with GitHub.
+3.  **Redirection**: GitHub redirects back to the callback URL with an authorization `code`.
+4.  **Token Exchange**: The client sends the `code` and the original `code_verifier` to `/auth/token`.
+5.  **Verification**: The backend verifies the PKCE handshake with GitHub and issues a short-lived **Access Token** (JWT) and an opaque **Refresh Token**.
 
 ## 🎫 Token Handling Approach
 
--   **Access Tokens**: JWTs with a 15-minute expiry, stored in HTTP-only cookies (Web) or memory (CLI).
--   **Refresh Tokens**: Opaque tokens stored in the database with a 7-day expiry. Used to rotate and issue new access tokens via `/api/v1/auth/refresh`.
--   **Security**: HTTP-only, Secure, and SameSite=Strict cookies prevent XSS and some CSRF attacks.
+-   **Access Tokens**: 3-minute expiry. Contains user `id`, `username`, and `role`.
+-   **Refresh Tokens**: 5-minute expiry. Stored in the database and rotated (invalidated) immediately upon use to prevent replay attacks.
+-   **Storage**: 
+    - **Web**: HTTP-only, Secure, SameSite=None cookies.
+    - **CLI**: Secure local storage at `~/.insighta/credentials.json`.
 
 ## 🛡 Role Enforcement Logic
 
-We use a declarative middleware (`authorizeRole`) to enforce permissions:
--   **ANALYST**: Can list and search profiles.
--   **ADMIN**: Can list, search, export (CSV), and delete profiles.
--   Roles are embedded in the JWT payload and verified on every request. The first user to register via GitHub is automatically assigned the `ADMIN` role.
+Permissions are managed via a structured middleware approach:
+-   **ANALYST**: Read-only access to `/api/profiles` and search.
+-   **ADMIN**: Full CRUD access, including profile creation, deletion, and CSV export.
+-   **Dynamic Assignment**: The first user to register in the system is automatically promoted to `ADMIN`.
 
 ## 🔍 Natural Language Parsing Approach
 
-The `naturalLanguageParser.js` utilizes a rule-based engine to translate human queries into structured filters:
--   **Entity Recognition**: Identifies countries, genders, and age keywords.
--   **Context Mapping**: Maps "males" to `gender='male'`, "Nigeria" to `country_id='NG'`, etc.
--   **Fuzzy Probabilities**: Leverages Stage 2 enrichment data to filter by confidence scores.
+Queries are processed via a rule-based parsing engine that translates text into SQL filters:
+-   **Keyword Mapping**: "males" -> `gender = 'male'`, "Nigeria" -> `country_id = 'NG'`.
+-   **Heuristic Extraction**: Extracts age ranges and demographic groupings.
+-   **Fuzzy Matching**: Matches query intent against stored profile data with confidence thresholds.
 
 ## 💻 CLI Usage
 
-1.  **Install**: `npm install -g .`
-2.  **Login**: `insighta login` (Opens browser, handles PKCE callback automatically).
-3.  **Search**: `insighta search "females from Nigeria"`
-4.  **List**: `insighta profiles --page 1 --limit 10`
+1.  **Installation**: `npm install -g .`
+2.  **Commands**:
+    - `insighta login`: Initiates the PKCE flow.
+    - `insighta profiles list`: Lists all profiles with optional filters.
+    - `insighta profiles search <query>`: Natural language search.
+    - `insighta profiles export`: Generates a CSV in the current directory.
 
-## 🌐 Web Portal
+## ⚙️ CI/CD & Deployment
 
-The web portal includes:
--   **CSRF Protection**: Every state-changing request requires a valid `X-CSRF-Token` header.
--   **Real-time Search**: Instant feedback using natural language queries.
--   **Responsive Design**: Premium UI built with Tailwind CSS and Framer Motion.
+-   **CI**: GitHub Actions runs on every PR to `main` (Linting, Build checks).
+-   **Deployment**: Hosted on Vercel with automatic deployments.
+-   **Security**: Includes Rate Limiting (10/min auth, 60/min api) and CSRF protection.
