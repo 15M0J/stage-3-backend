@@ -7,9 +7,9 @@ const { JWT_SECRET } = require("./authMiddleware");
 
 const router = express.Router();
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const DEFAULT_REDIRECT_URI = process.env.REDIRECT_URI || "http://localhost:3000/auth/github/callback";
+const GITHUB_CLIENT_ID = (process.env.GITHUB_CLIENT_ID || "").trim();
+const GITHUB_CLIENT_SECRET = (process.env.GITHUB_CLIENT_SECRET || "").trim();
+const DEFAULT_REDIRECT_URI = (process.env.REDIRECT_URI || "http://localhost:3000/auth/github/callback").trim();
 
 function generateTokens(user) {
   const payload = {
@@ -27,14 +27,16 @@ function generateTokens(user) {
 
 router.get("/github", (req, res) => {
   const { code_challenge, state, redirect_uri } = req.query;
-  const targetRedirect = redirect_uri || DEFAULT_REDIRECT_URI;
+  const targetRedirect = (redirect_uri || DEFAULT_REDIRECT_URI).trim();
   
   let githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(targetRedirect)}&scope=user:email`;
   
   if (code_challenge) githubAuthUrl += `&code_challenge=${code_challenge}&code_challenge_method=S256`;
   if (state) githubAuthUrl += `&state=${state}`;
   
-  res.redirect(githubAuthUrl);
+  // Use writeHead to avoid on-headers ERR_INVALID_CHAR on Vercel
+  res.writeHead(302, { Location: githubAuthUrl });
+  res.end();
 });
 
 router.post("/token", async (req, res) => {
