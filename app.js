@@ -34,7 +34,7 @@ const app = express();
 app.set('trust proxy', 1); // Trust Vercel's proxy
 
 // --- Security & Logging Middleware ---
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan(":method :url :status :response-time ms"));
 
 app.use(cookieParser());
