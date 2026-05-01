@@ -214,10 +214,19 @@ function buildProfileWhereClause(filters, values) {
 }
 
 async function listProfiles(options) {
+  const allowedSortColumns = new Set([
+    "created_at",
+    "name",
+    "age",
+    "gender",
+    "country_id",
+    "country_name",
+    "age_group"
+  ]);
   const values = [];
   const whereClause = buildProfileWhereClause(options.filters, values);
-  const sortBy = options.sort_by;
-  const order = options.order;
+  const sortBy = allowedSortColumns.has(options.sort_by) ? options.sort_by : "created_at";
+  const order = String(options.order).toLowerCase() === "desc" ? "DESC" : "ASC";
   const limit = options.limit;
   const offset = (options.page - 1) * options.limit;
 

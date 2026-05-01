@@ -30,7 +30,7 @@ function authenticateToken(req, res, next) {
     }
 
     // TRD: Check if user is active
-    const userResult = await query("SELECT is_active FROM users WHERE id = $1", [decoded.id]);
+    const userResult = await query("SELECT is_active, email FROM users WHERE id = $1", [decoded.id]);
     const user = userResult.rows[0];
 
     if (!user || !user.is_active) {
@@ -40,7 +40,7 @@ function authenticateToken(req, res, next) {
       });
     }
 
-    req.user = { ...decoded, is_active: user.is_active };
+    req.user = { ...decoded, is_active: user.is_active, email: user.email };
     next();
   });
 }
